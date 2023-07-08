@@ -1,101 +1,61 @@
-import React from 'react'
-import { Line } from 'react-chartjs-2'
-import numeral from 'numeral';
+import React, { useRef,useState } from 'react'
+import * as d3 from 'd3'
 
-const options = {
-  legend:{
-      display:false,
-  },
-  elements:{
-      point:{
-          radius:0,
-      },
-  },
-  maintainAspectRatio:false,
-  tooltips:{
-      mode:'index',
-      intersect:false,
-      callbacks:{
-          label:function(tooltipItem ,data){
-              return numeral(tooltipItem.value).format("+0,0");
-          },
-      },
-  },
-  scales:{
-      xAxes:[
-          {
-              type:'time',
-              time:{
-                  format:"MM//DD/YY",
-                  tooltipFormat:'ll',
-              },
-          },
-      ],
-      yAxes:[
-          {
-              gridLines:{
-                  display:false,
-              },
-              ticks:{
-                  callback:function(value,index,values){
-                      return numeral(value).format('0a')
-                  },
-              },
-          },
-      ],
-  }
-}
 function LineGraph() {
-
-    let[data,setData] = React.useState({})
+   const svgRef = useRef()
+   let [data]= useState([
+    [9000,0],[20000,1], [25000,2],[40000,3],[79000,4], [60000,5],
+      [130000,6], [180000,7], [185000,8],[175000,9],[210000,10],[150000,11],
+      [9000,12],[20000,13], [25000,14],[40000,15],[79000,16], [60000,17],
+      [130000,18], [180000,19], [185000,20],[175000,21],[210000,22],[150000,22],
+      [60000,23],
+      [130000,24], [180000,25], [185000,26],[175000,27],[210000,28],[150000,29],
+  ])
     //https://disease.sh/v3/covid-19/historical/all?lastdays=120
 
     React.useEffect(()=>{
-        const fetchData = async()=>{
-           await fetch('https://disease.sh/v3/covid-19/historical/all?lastdays=120')
-           .then((response)=>response.json())
-           .then((data)=>{
-                console.log(data)
-                const chartData = BuildchartData(data)
-                console.log(chartData);
-                setData(chartData)
-           })
-        }
-        fetchData()
-    },[])
-    const BuildchartData =(data,casesType='cases')=>{
-         const chartData = [];
-         let LastDataPoint;
+       const width = 260
+       const height = 200
 
-         for(let date in data.cases){
-             if(LastDataPoint){
-              const newDataPoint = {
-                  x:date,
-                  y:data['cases'][date] - LastDataPoint
-              }
-              chartData.push(newDataPoint)
-             }
-             LastDataPoint = data[casesType][date];   
-         }
-         return chartData;
-         
-    }
+       const svg = d3.select(svgRef.current)
+       .attr('height',height)
+       .attr('width',width)
+       .style('overflow','visible')
+       .attr('transform',`translate(${width - 230},0)`)
+       //setup scales
+       const xScale = d3.scaleLinear()
+       .domain([0,31])
+       .range([0,width])
+
+       const yScale = d3.scaleLinear()
+       .domain([d3.max(data,function(d){
+        return d[0]
+       }),0])
+       .range([0,height])
+
+       //setup axes
+       svg.append('g')
+       .call(d3.axisBottom(xScale))
+       .attr('transform',`translate(0,${height})`)
+
+       svg.append('g')
+       .call(d3.axisLeft(yScale))
+       //setup line generator
+       const linegenerator  = d3.line()
+       .x((d)=>xScale(d[1]))
+       .y((d)=>yScale(d[0])).curve(d3.curveCardinal)
+       //append line
+       svg.append('path')
+       .data([data])
+       .join('line')
+       .attr('d',linegenerator)
+       .style('fill','none')
+       .style('stroke','red')
+       .style('stroke-width',2)
+    },[data])
+   
   return (
-    <div>
-        I AM A GRAPH
-         {/* {data?.length > 0 &&(
-             <Line
-             data = {{
-                 datasets:[{
-                     data:data,
-                     backgroundColor:'rgba(204,16,52,0.5)',
-                     borderColor:'@CC1034'
-                 }]
-             }}
-             options = {options}
-           />
-         )} */}
-    </div>
+    <svg ref={svgRef}></svg>
   )
 }
 
